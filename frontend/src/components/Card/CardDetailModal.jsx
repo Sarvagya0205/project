@@ -43,6 +43,11 @@ export default function CardDetailModal({ card, boardId, onClose }) {
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [newItemTitle,      setNewItemTitle]      = useState({});
   const [coverColorPicker,  setCoverColorPicker]  = useState(false);
+  const [creatingLabel,     setCreatingLabel]     = useState(false);
+  const [newLabelName,      setNewLabelName]      = useState("");
+  const [newLabelColor,     setNewLabelColor]     = useState("#0052CC");
+
+  const LABEL_COLORS = ["#0052CC","#00875A","#DE350B","#FF8B00","#6554C0","#00B8D9","#36B37E","#FF5630","#C62828","#E91E63"];
 
   const modalRef = useRef(null);
 
@@ -395,14 +400,17 @@ export default function CardDetailModal({ card, boardId, onClose }) {
                 {/* Labels */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#626f86" }}>Labels</h4>
-                  <div className="space-y-1">
+                  <div className="space-y-1 mb-1">
+                    {labels.length === 0 && !creatingLabel && (
+                      <p className="text-xs italic" style={{ color: "#8c9bab" }}>No labels yet</p>
+                    )}
                     {labels.map((label) => {
                       const active = data.labels?.find((l) => l.id === label.id);
                       return (
                         <button
                           key={label.id}
                           onClick={() => toggleLabel(label)}
-                          className="w-full text-left text-xs px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-opacity"
+                          className="w-full text-left text-xs px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-all"
                           style={{ backgroundColor: label.color, color: "#fff", opacity: active ? 1 : 0.45 }}
                         >
                           {active && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -411,6 +419,65 @@ export default function CardDetailModal({ card, boardId, onClose }) {
                       );
                     })}
                   </div>
+
+                  {/* Create new label */}
+                  {creatingLabel ? (
+                    <div className="space-y-1.5 animate-fade-in">
+                      <input
+                        autoFocus
+                        value={newLabelName}
+                        onChange={e => setNewLabelName(e.target.value)}
+                        placeholder="Label name"
+                        className="w-full rounded-md px-2 py-1.5 text-xs focus:outline-none"
+                        style={{ backgroundColor: "#f8f9fa", color: "#172b4d", border: "1px solid #dfe1e6" }}
+                        onKeyDown={e => e.key === "Escape" && setCreatingLabel(false)}
+                      />
+                      {/* Color swatches */}
+                      <div className="flex flex-wrap gap-1">
+                        {LABEL_COLORS.map(c => (
+                          <button key={c} type="button"
+                            onClick={() => setNewLabelColor(c)}
+                            className="w-5 h-5 rounded transition-transform"
+                            style={{
+                              backgroundColor: c,
+                              transform: newLabelColor === c ? "scale(1.25)" : "scale(1)",
+                              boxShadow: newLabelColor === c ? `0 0 0 2px #fff, 0 0 0 3px ${c}` : "none"
+                            }}
+                          />
+                        ))}
+                      </div>
+                      {/* Preview */}
+                      <div className="w-full rounded-md px-3 py-1 text-xs font-semibold text-white text-center"
+                        style={{ backgroundColor: newLabelColor }}>
+                        {newLabelName || "Preview"}
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={async () => {
+                            if (!newLabelName.trim()) return;
+                            const res = await api.createBoardLabel(boardId, { name: newLabelName.trim(), color: newLabelColor });
+                            setLabels(l => [...l, res.data]);
+                            setCreatingLabel(false); setNewLabelName(""); setNewLabelColor("#0052CC");
+                          }}
+                          className="flex-1 text-xs py-1.5 rounded-md font-semibold text-white transition-opacity"
+                          style={{ backgroundColor: "#0c66e4" }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+                          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+                        >Create</button>
+                        <button onClick={() => setCreatingLabel(false)}
+                          className="text-xs px-2 py-1.5 rounded-md"
+                          style={{ color: "#626f86", backgroundColor: "rgba(9,30,66,0.06)" }}>✕</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setCreatingLabel(true)}
+                      className="w-full text-left text-xs px-2 py-1.5 rounded-md transition-colors font-medium"
+                      style={{ color: "#626f86", backgroundColor: "rgba(9,30,66,0.04)" }}
+                      onMouseEnter={e => { e.currentTarget.style.backgroundColor = "rgba(9,30,66,0.10)"; e.currentTarget.style.color = "#172b4d"; }}
+                      onMouseLeave={e => { e.currentTarget.style.backgroundColor = "rgba(9,30,66,0.04)"; e.currentTarget.style.color = "#626f86"; }}
+                    >+ Create label</button>
+                  )}
                 </div>
 
                 {/* Due Date */}
